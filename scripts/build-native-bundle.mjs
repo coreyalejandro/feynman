@@ -21,10 +21,22 @@ function resolveCommand(command) {
 	return command;
 }
 
+function spawnOptions(command, options = {}) {
+	if (process.platform === "win32" && command.endsWith(".cmd")) {
+		return {
+			shell: true,
+			...options,
+		};
+	}
+
+	return options;
+}
+
 function run(command, args, options = {}) {
 	const resolvedCommand = resolveCommand(command);
 	const result = spawnSync(resolvedCommand, args, {
 		stdio: "inherit",
+		...spawnOptions(resolvedCommand, options),
 		...options,
 	});
 	if (result.error) {
@@ -40,6 +52,7 @@ function runCapture(command, args, options = {}) {
 	const result = spawnSync(resolvedCommand, args, {
 		encoding: "utf8",
 		stdio: ["ignore", "pipe", "pipe"],
+		...spawnOptions(resolvedCommand, options),
 		...options,
 	});
 	if (result.error) {
