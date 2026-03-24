@@ -10,7 +10,7 @@ on:
 
 jobs:
   version-check:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       version: ${{ steps.version.outputs.version }}
       should_publish: ${{ steps.version.outputs.should_publish }}
@@ -40,7 +40,7 @@ jobs:
   publish-npm:
     needs: version-check
     if: needs.version-check.outputs.should_publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
     steps:
@@ -70,7 +70,7 @@ jobs:
           - id: darwin-arm64
             os: macos-14
           - id: win32-x64
-            os: windows-latest
+            os: blacksmith-4vcpu-windows-2025
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
@@ -109,7 +109,7 @@ jobs:
       - publish-npm
       - build-native-bundles
     if: needs.version-check.outputs.should_publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: write
     steps:
