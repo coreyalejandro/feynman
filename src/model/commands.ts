@@ -83,6 +83,7 @@ const API_KEY_PROVIDERS: ApiKeyProviderInfo[] = [
 	{ id: "openai", label: "OpenAI Platform API", envVar: "OPENAI_API_KEY" },
 	{ id: "anthropic", label: "Anthropic API", envVar: "ANTHROPIC_API_KEY" },
 	{ id: "google", label: "Google Gemini API", envVar: "GEMINI_API_KEY" },
+	{ id: "lm-studio", label: "LM Studio (local OpenAI-compatible server)" },
 	{ id: "__custom__", label: "Custom provider (local/self-hosted/proxy)" },
 	{ id: "amazon-bedrock", label: "Amazon Bedrock (AWS credential chain)" },
 	{ id: "openrouter", label: "OpenRouter", envVar: "OPENROUTER_API_KEY" },
@@ -132,6 +133,8 @@ async function selectApiKeyProvider(): Promise<ApiKeyProviderInfo | undefined> {
 		label: provider.label,
 		hint: provider.id === "__custom__"
 			? "Ollama, vLLM, LM Studio, proxies"
+			: provider.id === "lm-studio"
+				? "http://localhost:1234/v1"
 			: provider.envVar ?? provider.id,
 	}));
 	options.push({ value: "cancel", label: "Cancel" });
@@ -362,6 +365,44 @@ async function promptCustomProviderSetup(): Promise<CustomProviderSetup | undefi
 	return { providerId, modelIds, baseUrl, api, apiKeyConfig, authHeader };
 }
 
+async function promptLmStudioProviderSetup(): Promise<CustomProviderSetup | undefined> {
+	printSection("LM Studio");
+	printInfo("Start the LM Studio local server first, then load a model.");
+
+	const baseUrlRaw = await promptText("Base URL", "http://localhost:1234/v1");
+	const { baseUrl } = normalizeCustomProviderBaseUrl("openai-completions", baseUrlRaw);
+	if (!baseUrl) {
+		printWarning("Base URL is required.");
+		return undefined;
+	}
+
+	const detectedModelIds = await bestEffortFetchOpenAiModelIds(baseUrl, "lm-studio", false);
+	let modelIdsDefault = "local-model";
+	if (detectedModelIds && detectedModelIds.length > 0) {
+		const sample = detectedModelIds.slice(0, 10).join(", ");
+		printInfo(`Detected LM Studio models: ${sample}${detectedModelIds.length > 10 ? ", ..." : ""}`);
+		modelIdsDefault = detectedModelIds[0]!;
+	} else {
+		printInfo("No models detected from /models. Enter the exact model id shown in LM Studio.");
+	}
+
+	const modelIdsRaw = await promptText("Model id(s) (comma-separated)", modelIdsDefault);
+	const modelIds = normalizeModelIds(modelIdsRaw);
+	if (modelIds.length === 0) {
+		printWarning("At least one model id is required.");
+		return undefined;
+	}
+
+	return {
+		providerId: "lm-studio",
+		modelIds,
+		baseUrl,
+		api: "openai-completions",
+		apiKeyConfig: "lm-studio",
+		authHeader: false,
+	};
+}
+
 async function verifyCustomProvider(setup: CustomProviderSetup, authPath: string): Promise<void> {
 	const registry = createModelRegistry(authPath);
 	const modelsError = registry.getError();
@@ -546,6 +587,31 @@ async function configureApiKeyProvider(authPath: string, providerId?: string): P
 
 	if (provider.id === "amazon-bedrock") {
 		return configureBedrockProvider(authPath);
+	}
+
+	if (provider.id === "lm-studio") {
+		const setup = await promptLmStudioProviderSetup();
+		if (!setup) {
+			printInfo("LM Studio setup cancelled.");
+			return false;
+		}
+
+		const modelsJsonPath = getModelsJsonPath(authPath);
+		const result = upsertProviderConfig(modelsJsonPath, setup.providerId, {
+			baseUrl: setup.baseUrl,
+			apiKey: setup.apiKeyConfig,
+			api: setup.api,
+			authHeader: setup.authHeader,
+			models: setup.modelIds.map((id) => ({ id })),
+		});
+		if (!result.ok) {
+			printWarning(result.error);
+			return false;
+		}
+
+		printSuccess("Saved LM Studio provider.");
+		await verifyCustomProvider(setup, authPath);
+		return true;
 	}
 
 	if (provider.id === "__custom__") {

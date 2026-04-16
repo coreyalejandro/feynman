@@ -79,6 +79,15 @@ test("resolveModelProviderForCommand falls back to API-key providers when OAuth 
 	assert.equal(resolved?.id, "google");
 });
 
+test("resolveModelProviderForCommand supports LM Studio as a first-class local provider", () => {
+	const authPath = createAuthPath({});
+
+	const resolved = resolveModelProviderForCommand(authPath, "lm-studio");
+
+	assert.equal(resolved?.kind, "api-key");
+	assert.equal(resolved?.id, "lm-studio");
+});
+
 test("resolveModelProviderForCommand prefers OAuth when a provider supports both auth modes", () => {
 	const authPath = createAuthPath({});
 
