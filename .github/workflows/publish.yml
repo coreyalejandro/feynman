@@ -5,62 +5,63 @@ env:
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing git tag to publish and release (for example: v0.2.18)
-        required: true
-        type: string
 
 jobs:
-  verify:
+  version-check:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
-      tag: ${{ steps.meta.outputs.tag }}
-      version: ${{ steps.meta.outputs.version }}
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.version.outputs.should_release }}
     steps:
-      - name: Resolve release metadata
-        id: meta
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+      - id: version
         shell: bash
         env:
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-          REF_NAME: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${INPUT_TAG:-$REF_NAME}"
-          VERSION="${TAG#v}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          LOCAL=$(node -p "require('./package.json').version")
+          echo "version=$LOCAL" >> "$GITHUB_OUTPUT"
+          if gh release view "v$LOCAL" >/dev/null 2>&1; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    needs: version-check
+    if: needs.version-check.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
       - uses: actions/checkout@v6
-        with:
-          ref: refs/tags/${{ steps.meta.outputs.tag }}
       - uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
       - run: npm ci
-      - name: Verify package version matches tag
-        shell: bash
-        run: |
-          ACTUAL="$(node -p "require('./package.json').version")"
-          EXPECTED="${{ steps.meta.outputs.version }}"
-          test "$ACTUAL" = "$EXPECTED"
       - run: npm test
       - run: npm pack
 
   publish-npm:
-    needs: verify
+    needs:
+      - version-check
+      - verify
+    if: needs.version-check.outputs.should_release == 'true' && needs.verify.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: refs/tags/${{ needs.verify.outputs.tag }}
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -69,7 +70,8 @@ jobs:
       - run: npm publish --provenance --access public
 
   build-native-bundles:
-    needs: verify
+    needs: version-check
+    if: needs.version-check.outputs.should_release == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -87,8 +89,6 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: refs/tags/${{ needs.verify.outputs.tag }}
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -121,8 +121,10 @@ jobs:
 
   release-github:
     needs:
+      - version-check
       - publish-npm
       - build-native-bundles
+    if: needs.version-check.outputs.should_release == 'true' && needs.publish-npm.result == 'success' && needs.build-native-bundles.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -136,17 +138,18 @@ jobs:
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.verify.outputs.tag }}
+          VERSION: ${{ needs.version-check.outputs.version }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-assets/* --clobber
-            gh release edit "$TAG" \
-              --title "$TAG" \
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            gh release upload "v$VERSION" release-assets/* --clobber
+            gh release edit "v$VERSION" \
+              --title "v$VERSION" \
               --notes "Standalone Feynman bundles for native installation." \
               --draft=false \
               --latest
           else
-            gh release create "$TAG" release-assets/* \
-              --title "$TAG" \
-              --notes "Standalone Feynman bundles for native installation."
+            gh release create "v$VERSION" release-assets/* \
+              --title "v$VERSION" \
+              --notes "Standalone Feynman bundles for native installation." \
+              --target "$GITHUB_SHA"
           fi
