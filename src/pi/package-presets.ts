@@ -9,7 +9,6 @@ export const CORE_PACKAGE_SOURCES = [
 	"npm:pi-markdown-preview",
 	"npm:@walterra/pi-charts",
 	"npm:pi-mermaid",
-	"npm:@aliou/pi-processes",
 	"npm:pi-zotero",
 	"npm:@kaiserlich-dev/pi-session-search",
 	"npm:pi-schedule-prompt",

@@ -14,3 +14,7 @@ notes/*
 !notes/.gitkeep
 experiments/*
 !experiments/.gitkeep
+
+# OpenMemory - IDE/Assistant specific rules
+.cursor/rules/openmemory.mdc
+AGENTS.md

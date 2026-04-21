@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "state_machine": {
+    "states": [
+      "draft_build",
+      "committee_review",
+      "product_vote",
+      "safety_vote",
+      "reconciliation",
+      "sign_and_bind",
+      "enforced",
+      "sunset",
+      "struck"
+    ],
+    "transitions": [
+      { "from": "draft_build", "to": "committee_review" },
+      { "from": "committee_review", "to": "product_vote" },
+      { "from": "committee_review", "to": "safety_vote" },
+      { "from": "product_vote", "to": "reconciliation" },
+      { "from": "safety_vote", "to": "reconciliation" },
+      { "from": "reconciliation", "to": "sign_and_bind" },
+      { "from": "sign_and_bind", "to": "enforced" },
+      { "from": "enforced", "to": "sunset" }
+    ],
+    "any_to_struck": true
+  },
+  "required_artifacts": {
+    "baseline": [
+      "governance/bills/<slug>/bill.md",
+      "governance/bills/<slug>/decision.md",
+      "governance/bills/<slug>/verification.md",
+      "governance/bills/<slug>/evidence/"
+    ],
+    "per_state": {
+      "committee_review": ["governance/bills/<slug>/evidence/index.md"],
+      "enforced": ["governance/bills/<slug>/verification.md"]
+    }
+  }
+}
+

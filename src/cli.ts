@@ -63,9 +63,31 @@ function printHelpLine(usage: string, description: string): void {
 }
 
 function printHelp(appRoot: string): void {
-	const workflowCommands = readPromptSpecs(appRoot).filter(
-		(command) => command.section === "Research Workflows" && command.topLevelCli,
-	);
+	const workflowCommandsBySection = new Map<string, ReturnType<typeof readPromptSpecs>>();
+	for (const command of readPromptSpecs(appRoot)) {
+		if (!command.topLevelCli || command.section === "Internal") continue;
+		const items = workflowCommandsBySection.get(command.section) ?? [];
+		items.push(command);
+		workflowCommandsBySection.set(command.section, items);
+	}
+
+	const sectionOrder = [
+		"Research Workflows",
+		"Governance Workflows",
+	] as const;
+
+	function compareWorkflowSections(left: string, right: string): number {
+		const leftIndex = sectionOrder.indexOf(left as (typeof sectionOrder)[number]);
+		const rightIndex = sectionOrder.indexOf(right as (typeof sectionOrder)[number]);
+		if (leftIndex !== -1 || rightIndex !== -1) {
+			const li = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex;
+			const ri = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex;
+			if (li !== ri) return li - ri;
+		}
+		return left.localeCompare(right);
+	}
+
+	const workflowSectionTitles = [...workflowCommandsBySection.keys()].sort(compareWorkflowSections);
 
 	printAsciiHeader([
 		"Research-first agent shell built on Pi.",
@@ -86,9 +108,13 @@ function printHelp(appRoot: string): void {
 		}
 	}
 
-	printSection("Research Workflows");
-	for (const command of workflowCommands) {
-		printHelpLine(formatCliWorkflowUsage(command), command.description);
+	for (const title of workflowSectionTitles) {
+		const workflowCommands = workflowCommandsBySection.get(title);
+		if (!workflowCommands || workflowCommands.length === 0) continue;
+		printSection(title);
+		for (const command of workflowCommands) {
+			printHelpLine(formatCliWorkflowUsage(command), command.description);
+		}
 	}
 
 	printSection("Legacy Flags");

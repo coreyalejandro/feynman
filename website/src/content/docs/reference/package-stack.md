@@ -20,7 +20,6 @@ These are installed by default with every Feynman installation. They provide the
 | `pi-markdown-preview` | Render Markdown and LaTeX-heavy research documents as polished HTML/PDF |
 | `@walterra/pi-charts` | Generate charts and quantitative visualizations from data |
 | `pi-mermaid` | Render Mermaid diagrams in the terminal UI |
-| `@aliou/pi-processes` | Manage long-running experiments, background tasks, and log tailing |
 | `pi-zotero` | Integration with Zotero for citation library management |
 | `@kaiserlich-dev/pi-session-search` | Indexed session recall with summarize and resume UI. Powers session lookup |
 | `pi-schedule-prompt` | Schedule recurring and deferred research jobs. Powers the `/watch` workflow |

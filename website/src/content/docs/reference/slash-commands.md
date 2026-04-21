@@ -23,6 +23,14 @@ Slash commands are available inside the Feynman REPL. They map to research workf
 
 These are the primary commands you will use day-to-day. Each workflow dispatches one or more specialized agents (researcher, reviewer, writer, verifier) depending on the task.
 
+## Governance workflows
+
+| Command | Description |
+| --- | --- |
+| `/build-contract <slug>` | Create or update a governed build-contract packet under `governance/bills/<slug>/` |
+| `/court <slug>` | Constitutional review of a governed packet (writes `outputs/<slug>-court.md`) |
+| `/enact <slug>` | Enact a packet by recording decisions and updating the governance ledger |
+
 ## Project and session
 
 | Command | Description |

@@ -312,3 +312,19 @@ Use this file to track chronology, not release notes. Keep entries short, factua
 - Failed / learned: The Élysée homepage does not explicitly state the core claim, so it should not be used as sole evidence for capital status.
 - Blockers: None for the verifier brief; any stronger legal memo would still need a more direct constitutional/statutory basis if that specific question is asked.
 - Next: Promote the brief into the final output or downgrade/remove any claim that leans on the Élysée URL alone.
+
+### 2026-04-20 17:30 local — dao-existing-code-audit
+
+- Objective: Audit 4 repos (28441830/PROACTIVE, consent-gateway-auth0, silly-bell, the-living-constitution) to map existing working code to ConstitutionalDAO v2 gaps.
+- Changed: Launched 4 parallel researcher subagents. All completed successfully. Output: 2,338 lines of deep audit across 4 research files in outputs/.
+- Verified: All 4 researchers read source files directly (not inferred from docs). Quantitative evidence cited for invariant checker (100% detection, 0% FP), W&B adapter (p<0.0001, d=3.31), HELM (p=0.001, d=0.567, N=200), policy engine (3 ops hardcoded), sandbox (halt+jail+rlimits working).
+- Key findings:
+  - TLC C-RSP A-E and v2 A-E are COMPLEMENTARY not redundant (different abstraction levels)
+  - 4 Safety Domains are formally defined with TypeScript types, invariant mappings, and canonical tools
+  - Cognitive Safety (F3/F5) confirmed NOVEL — no v2 equivalent
+  - Golden Sandbox has working halt authority, namespace jail, resource ceilings
+  - PROACTIVE validator is production-grade (185+ tests, 90+ governance run artifacts)
+  - Consent Gateway 8-stage pipeline is real TypeScript with RFC 8693 token exchange
+  - 59+ invariants in machine-readable registry
+  - Gap: policy engine is demo-scale (3 hardcoded ops), I3 lacks regex fallback, F3/F5 have no runtime detection
+- Next: Write synthesis draft mapping all existing code to v2 components, then verify and deliver.

@@ -11,6 +11,26 @@ import { APP_ROOT } from "./shared.js";
 type HelpCommand = { usage: string; description: string };
 type HelpSection = { title: string; commands: HelpCommand[] };
 
+const HELP_SECTION_ORDER = [
+	"Research Workflows",
+	"Governance Workflows",
+	"Project & Session",
+	"Setup",
+	"Agents & Delegation",
+	"Bundled Package Commands",
+] as const;
+
+function compareHelpSectionTitles(left: string, right: string): number {
+	const leftIndex = HELP_SECTION_ORDER.indexOf(left as (typeof HELP_SECTION_ORDER)[number]);
+	const rightIndex = HELP_SECTION_ORDER.indexOf(right as (typeof HELP_SECTION_ORDER)[number]);
+	if (leftIndex !== -1 || rightIndex !== -1) {
+		const li = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex;
+		const ri = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex;
+		if (li !== ri) return li - ri;
+	}
+	return left.localeCompare(right);
+}
+
 function buildHelpSections(pi: ExtensionAPI): HelpSection[] {
 	const liveCommands = new Map(pi.getCommands().map((command) => [command.name, command]));
 	const promptSpecs = readPromptSpecs(APP_ROOT);
@@ -59,15 +79,10 @@ function buildHelpSections(pi: ExtensionAPI): HelpSection[] {
 		}
 	}
 
-	return [
-		"Research Workflows",
-		"Project & Session",
-		"Setup",
-		"Agents & Delegation",
-		"Bundled Package Commands",
-	]
-		.map((title) => ({ title, commands: sections.get(title) ?? [] }))
-		.filter((section) => section.commands.length > 0);
+	return [...sections.entries()]
+		.filter(([, commands]) => commands.length > 0)
+		.sort(([leftTitle], [rightTitle]) => compareHelpSectionTitles(leftTitle, rightTitle))
+		.map(([title, commands]) => ({ title, commands }));
 }
 
 export function registerHelpCommand(pi: ExtensionAPI): void {
