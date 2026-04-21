@@ -14,7 +14,7 @@ They are designed to be **one-thing-well** and **fail-closed**: do not claim pro
 | Command | Description |
 | --- | --- |
 | `/build-contract <slug>` | Create or update a governed build-contract packet under `governance/bills/<slug>/` |
-| `/court <slug>` | Constitutional review of a governed packet (writes `outputs/<slug>-court.md`) |
+| `/court <slug>` | Constitutional review of a governed packet (writes `outputs/<run_id>-court_FINAL.md`, where `run_id` is `YYYY-MM-DD_HHMM_<slug>`) |
 | `/enact <slug>` | Enact a packet by recording decisions and updating the governance ledger |
 
 ## Required governed artifacts

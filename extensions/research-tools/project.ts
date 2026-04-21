@@ -48,7 +48,8 @@ async function collectArtifacts(cwd: string): Promise<{ label: string; path: str
 					const mtime = info?.mtimeMs ?? 0;
 					const size = info ? formatSize(info.size) : "";
 					const titlePart = title ? ` — ${title}` : "";
-					items.push({ label: `${rel}${titlePart}  (${size})`, path: rel, mtime });
+					const mtimePart = mtime ? ` — ${formatTimestamp(mtime)}` : "";
+					items.push({ label: `${rel}${titlePart}${mtimePart}  (${size})`, path: rel, mtime });
 				}
 			}
 		};
@@ -64,6 +65,16 @@ function formatSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes}B`;
 	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
 	return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+function formatTimestamp(ms: number): string {
+	const date = new Date(ms);
+	const yyyy = date.getFullYear();
+	const mm = String(date.getMonth() + 1).padStart(2, "0");
+	const dd = String(date.getDate()).padStart(2, "0");
+	const hh = String(date.getHours()).padStart(2, "0");
+	const min = String(date.getMinutes()).padStart(2, "0");
+	return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 
 export function registerInitCommand(pi: ExtensionAPI): void {

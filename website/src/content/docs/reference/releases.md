@@ -71,6 +71,7 @@ This page summarizes what changed in recent Feynman releases. GitHub releases us
 ### Fixes
 
 - Hardened `/review` so it writes a durable plan, evidence notes, and `outputs/<slug>-review.md` instead of stopping after a planning/narration response.
+- Note: newer versions now timestamp artifact filenames (e.g. `outputs/YYYY-MM-DD_HHMM_<slug>-review_FINAL.md`) so outputs sort by recency.
 - Added blocked-review fallback behavior for PDFs or external sources that cannot be parsed, so failed extraction still produces an explicit review artifact with `Verification: BLOCKED`.
 - Fixed subagent child-process spawning under Feynman's Pi wrapper so writer/reviewer subagents no longer treat `--mode` as a module path.
 - Made optional package presets platform-aware so Linux users do not see or attempt to install the macOS-only `generative-ui` package.

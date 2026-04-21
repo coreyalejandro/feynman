@@ -13,18 +13,21 @@ Execute the workflow. Do not answer by describing the protocol, do not explain t
 
 Derive a short slug from the topic: lowercase, hyphenated, no filler words, at most 5 words.
 
+Derive a run timestamp in local time: `YYYY-MM-DD_HHMM`. Define `run_id = <timestamp>_<slug>`.
+Use `run_id` for all artifact filenames in this run so files sort by recency.
+
 Every run must leave these files on disk:
-- `outputs/.plans/<slug>.md`
-- `outputs/.drafts/<slug>-draft.md`
-- `outputs/.drafts/<slug>-cited.md`
-- `outputs/<slug>.md` or `papers/<slug>.md`
-- `outputs/<slug>.provenance.md` or `papers/<slug>.provenance.md`
+- `outputs/.plans/<run_id>.md`
+- `outputs/.drafts/<run_id>-draft.md`
+- `outputs/.drafts/<run_id>-cited.md`
+- `outputs/<run_id>_FINAL.md` or `papers/<run_id>_FINAL.md`
+- `outputs/<run_id>_FINAL.provenance.md` or `papers/<run_id>_FINAL.provenance.md`
 
 After the user approves the plan, if any capability fails, continue in degraded mode and still write a blocked or partial final output and provenance sidecar. Never end with chat-only output after plan approval. Never end with only an explanation in chat after plan approval. Use `Verification: BLOCKED` when verification could not be completed.
 
 ## Step 1: Plan
 
-Create `outputs/.plans/<slug>.md` immediately. The plan must include:
+Create `outputs/.plans/<run_id>.md` immediately. The plan must include:
 - Key questions
 - Evidence needed
 - Scale decision
@@ -40,7 +43,7 @@ After writing the plan, stop and ask for explicit confirmation before gathering 
 
 `Proceed with this deep research plan? Reply "yes" to continue, or tell me what to change.`
 
-Do not run searches, fetch sources, spawn subagents, draft, cite, review, or deliver final artifacts until the user confirms. If the user requests changes, update `outputs/.plans/<slug>.md` first, then ask for confirmation again.
+Do not run searches, fetch sources, spawn subagents, draft, cite, review, or deliver final artifacts until the user confirms. If the user requests changes, update `outputs/.plans/<run_id>.md` first, then ask for confirmation again.
 
 ## Step 2: Scale
 
@@ -66,12 +69,12 @@ If direct search was chosen:
 - Skip researcher spawning entirely.
 - Search and fetch sources yourself.
 - Use multiple search terms/angles before drafting. Minimum: 3 distinct queries for direct-mode research, covering definition/history, mechanism/formula, and current usage/comparison when relevant.
-- Record the exact search terms used in `outputs/.drafts/<slug>-research-direct.md`.
-- Write notes to `outputs/.drafts/<slug>-research-direct.md`.
+- Record the exact search terms used in `outputs/.drafts/<run_id>-research-direct.md`.
+- Write notes to `outputs/.drafts/<run_id>-research-direct.md`.
 - Continue to synthesis.
 
 If subagents were chosen:
-- Write a per-researcher brief first, such as `outputs/.plans/<slug>-T1.md`.
+- Write a per-researcher brief first, such as `outputs/.plans/<run_id>-T1.md`.
 - Keep `subagent` tool-call JSON small and valid.
 - Do not place multi-paragraph instructions inside the `subagent` JSON.
 - Use only supported `subagent` keys. Do not add extra keys such as `artifacts` unless the tool schema explicitly exposes them.
@@ -84,8 +87,8 @@ Example shape:
 ```json
 {
   "tasks": [
-    { "agent": "researcher", "task": "Read outputs/.plans/<slug>-T1.md and write <slug>-research-web.md.", "output": "<slug>-research-web.md" },
-    { "agent": "researcher", "task": "Read outputs/.plans/<slug>-T2.md and write <slug>-research-papers.md.", "output": "<slug>-research-papers.md" }
+    { "agent": "researcher", "task": "Read outputs/.plans/<run_id>-T1.md and write <run_id>-research-web.md.", "output": "<run_id>-research-web.md" },
+    { "agent": "researcher", "task": "Read outputs/.plans/<run_id>-T2.md and write <run_id>-research-papers.md.", "output": "<run_id>-research-papers.md" }
   ],
   "concurrency": 4,
   "failFast": false
@@ -98,7 +101,7 @@ After evidence gathering, update the plan ledger and verification log. If resear
 
 Write the report yourself. Do not delegate synthesis.
 
-Save to `outputs/.drafts/<slug>-draft.md`.
+Save to `outputs/.drafts/<run_id>-draft.md`.
 
 Include:
 - Executive summary
@@ -117,7 +120,7 @@ Before citation, sweep the draft:
 If direct search/no researcher subagents was chosen:
 - Do citation yourself.
 - Verify reachable HTML/doc URLs with available fetch/search tools.
-- Copy or rewrite `outputs/.drafts/<slug>-draft.md` to `outputs/.drafts/<slug>-cited.md` with inline citations and a Sources section.
+- Copy or rewrite `outputs/.drafts/<run_id>-draft.md` to `outputs/.drafts/<run_id>-cited.md` with inline citations and a Sources section.
 - Do not spawn the `verifier` subagent for simple direct-search runs.
 
 If researcher subagents were used, run the `verifier` agent after the draft exists. This step is mandatory and must complete before any reviewer runs. Do not run the `verifier` and `reviewer` in the same parallel `subagent` call.
@@ -127,48 +130,48 @@ Use this shape:
 ```json
 {
   "agent": "verifier",
-  "task": "Add inline citations to outputs/.drafts/<slug>-draft.md using the research files as source material. Verify every URL. Write the complete cited brief to outputs/.drafts/<slug>-cited.md.",
-  "output": "outputs/.drafts/<slug>-cited.md"
+  "task": "Add inline citations to outputs/.drafts/<run_id>-draft.md using the research files as source material. Verify every URL. Write the complete cited brief to outputs/.drafts/<run_id>-cited.md.",
+  "output": "outputs/.drafts/<run_id>-cited.md"
 }
 ```
 
-After the verifier returns, verify on disk that `outputs/.drafts/<slug>-cited.md` exists. If the verifier wrote elsewhere, find the cited file and move or copy it to `outputs/.drafts/<slug>-cited.md`.
+After the verifier returns, verify on disk that `outputs/.drafts/<run_id>-cited.md` exists. If the verifier wrote elsewhere, find the cited file and move or copy it to `outputs/.drafts/<run_id>-cited.md`.
 
 ## Step 6: Review
 
 If direct search/no researcher subagents was chosen:
 - Review the cited draft yourself.
-- Write `outputs/.drafts/<slug>-verification.md` with FATAL / MAJOR / MINOR findings and the checks performed.
+- Write `outputs/.drafts/<run_id>-verification.md` with FATAL / MAJOR / MINOR findings and the checks performed.
 - Fix FATAL issues before delivery.
 - Do not spawn the `reviewer` subagent for simple direct-search runs.
 
-If researcher subagents were used, only after `outputs/.drafts/<slug>-cited.md` exists, run the `reviewer` agent against it.
+If researcher subagents were used, only after `outputs/.drafts/<run_id>-cited.md` exists, run the `reviewer` agent against it.
 
 Use this shape:
 
 ```json
 {
   "agent": "reviewer",
-  "task": "Verify outputs/.drafts/<slug>-cited.md. Flag unsupported claims, logical gaps, single-source critical claims, and overstated confidence. This is a verification pass, not a peer review.",
-  "output": "<slug>-verification.md"
+  "task": "Verify outputs/.drafts/<run_id>-cited.md. Flag unsupported claims, logical gaps, single-source critical claims, and overstated confidence. This is a verification pass, not a peer review.",
+  "output": "<run_id>-verification.md"
 }
 ```
 
 If the reviewer flags FATAL issues, fix them before delivery and run one more review pass. Note MAJOR issues in Open Questions. Accept MINOR issues.
 
-When applying reviewer fixes, do not issue one giant `edit` tool call with many replacements. Use small localized edits only for 1-3 simple corrections. For section rewrites, table rewrites, or more than 3 substantive fixes, read the cited draft and write a corrected full file to `outputs/.drafts/<slug>-revised.md` instead.
+When applying reviewer fixes, do not issue one giant `edit` tool call with many replacements. Use small localized edits only for 1-3 simple corrections. For section rewrites, table rewrites, or more than 3 substantive fixes, read the cited draft and write a corrected full file to `outputs/.drafts/<run_id>_v02.md` instead.
 
 After applying reviewer, verifier, audit, or PI-style fixes, run an explicit on-disk verification before saying the fixes landed. Use `rg`, `grep`, `diff`, `wc`, `stat`, or a targeted read to prove the old unsupported wording is gone and the replacement wording exists. If an `edit` or `write` tool call fails, do not describe the fix as applied; record the failure in the plan/provenance, retry with a smaller edit or a full corrected file, and verify again. Provenance may only say an issue was fixed when this post-edit verification passed.
 
-The final candidate is `outputs/.drafts/<slug>-revised.md` if it exists; otherwise it is `outputs/.drafts/<slug>-cited.md`.
+The final candidate is `outputs/.drafts/<run_id>_v02.md` if it exists; otherwise it is `outputs/.drafts/<run_id>-cited.md`.
 
 ## Step 7: Deliver
 
 Copy the final candidate to:
-- `papers/<slug>.md` for paper-style drafts
-- `outputs/<slug>.md` for everything else
+- `papers/<run_id>_FINAL.md` for paper-style drafts
+- `outputs/<run_id>_FINAL.md` for everything else
 
-Write provenance next to it as `<slug>.provenance.md`:
+Write provenance next to it as `<run_id>_FINAL.provenance.md`:
 
 ```markdown
 # Provenance: [topic]
@@ -179,7 +182,7 @@ Write provenance next to it as `<slug>.provenance.md`:
 - **Sources accepted:** [count and/or list]
 - **Sources rejected:** [dead, unverifiable, or removed]
 - **Verification:** [PASS / PASS WITH NOTES / BLOCKED]
-- **Plan:** outputs/.plans/<slug>.md
+- **Plan:** outputs/.plans/<run_id>.md
 - **Research files:** [files used]
 ```
 

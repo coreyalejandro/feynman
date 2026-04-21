@@ -7,6 +7,7 @@ topLevelCli: true
 Summarize the following source: $@
 
 Derive a short slug from the source filename or URL domain (lowercase, hyphens, no filler words, ≤5 words — e.g. `attention-is-all-you-need`). Use this slug for all files in this run.
+Derive a run timestamp in local time: `YYYY-MM-DD_HHMM`. Define `run_id = <timestamp>_<slug>`. Use `run_id` for all artifact filenames so files sort by recency.
 
 ## Why this uses the RLM pattern
 
@@ -39,7 +40,7 @@ Run all guards before any tier logic. A failure here is cheap; a failure mid-Tie
 - **Local file or PDF**: copy or extract to `outputs/.notes/<slug>-raw.txt`. For PDFs, extract text via `pdftotext` or equivalent before measuring.
 - **Empty or failed fetch**: if the file is < 50 bytes after fetching, stop and surface the error to the user — do not proceed to tier selection.
 - **Binary content**: if the file is > 1 KB but contains < 100 readable text characters, stop and tell the user the content appears binary or unextracted.
-- **Existing output**: if `outputs/<slug>-summary.md` already exists, ask the user whether to overwrite or use a different slug. Do not proceed until confirmed.
+- **Existing output**: if `outputs/<run_id>-summary_FINAL.md` already exists, ask the user whether to overwrite or use a different `run_id`. Do not proceed until confirmed.
 
 Measure decoded text characters (not bytes — UTF-8 multi-byte chars would overcount). Log: `[summarize] source=<source> slug=<slug> chars=<count>`
 
@@ -59,7 +60,7 @@ Log: `[summarize] tier=<N> chars=<count>`
 
 ## Tier 1 — Direct read
 
-Read `outputs/.notes/<slug>-raw.txt` in full. Summarize directly using the output format. Write to `outputs/<slug>-summary.md`.
+Read `outputs/.notes/<slug>-raw.txt` in full. Summarize directly using the output format. Write to `outputs/<run_id>-summary_FINAL.md`.
 
 ---
 
@@ -80,7 +81,7 @@ For each window:
 2. Append to `outputs/.notes/<slug>-notes.md` before reading the next window. This is the checkpoint: if the session is interrupted, processed windows survive.
 3. Log: `[summarize] window <N>/<total> done`
 
-Synthesize `outputs/.notes/<slug>-notes.md` into `outputs/<slug>-summary.md`.
+Synthesize `outputs/.notes/<slug>-notes.md` into `outputs/<run_id>-summary_FINAL.md`.
 
 ---
 
@@ -140,13 +141,13 @@ When synthesizing:
 - **Resolve boundary conflicts**: for adjacent-chunk contradictions, prefer the version with more supporting context.
 - **Remove BOUNDARY PARTIAL markers** where a complete version exists in a neighbouring chunk.
 
-Write to `outputs/<slug>-summary.md`.
+Write to `outputs/<run_id>-summary_FINAL.md`.
 
 ---
 
 ## Output format
 
-All tiers produce the same artifact at `outputs/<slug>-summary.md`:
+All tiers produce the same artifact at `outputs/<run_id>-summary_FINAL.md`:
 
 ```markdown
 # Summary: [document title or source filename]
@@ -174,6 +175,6 @@ All tiers produce the same artifact at `outputs/<slug>-summary.md`:
 [Missing chunk indices and their approximate byte ranges]
 ```
 
-Before you stop, verify on disk that `outputs/<slug>-summary.md` exists.
+Before you stop, verify on disk that `outputs/<run_id>-summary_FINAL.md` exists.
 
 Sources contains only the single source confirmed reachable in Step 1. No verifier subagent is needed — there are no URLs constructed from memory to verify.
